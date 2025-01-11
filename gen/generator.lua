@@ -1,12 +1,14 @@
-package.path = package.path.."../../LuaJIT-ImGui/cimgui/generator/?.lua"
+--package.path = package.path.."../../LuaJIT-ImGui/cimgui/generator/?.lua"
+package.path = package.path.."../../anima/LuaJIT-ImGui/cimgui/generator/?.lua"
 local cp2c = require"cpp2ffi"
 local parser = cp2c.Parser()
 
 local defines = {}
 
-cp2c.save_data("./outheader.h",[[#include <portaudio.h>]])
+cp2c.save_data("./outheader.h",[[#include <portaudio.h>
+#include "pa_asio.h"]])
 
-defines = parser:take_lines([[gcc -E -dD -I ../portaudio/ -I ../portaudio/include/ ./outheader.h]],{"portaudio.-"},"gcc")
+defines = parser:take_lines([[gcc -E -dD -I ../portaudio/ -I ../portaudio/include/ ./outheader.h]],{"portaudio.-","pa_asio.-"},"gcc")
 
 
 os.remove"./outheader.h"

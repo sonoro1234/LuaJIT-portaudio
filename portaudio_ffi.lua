@@ -197,7 +197,22 @@ PaError Pa_WriteStream( PaStream* stream,
 signed long Pa_GetStreamReadAvailable( PaStream* stream );
 signed long Pa_GetStreamWriteAvailable( PaStream* stream );
 PaError Pa_GetSampleSize( PaSampleFormat format );
-void Pa_Sleep( long msec );]]
+void Pa_Sleep( long msec );
+PaError PaAsio_GetAvailableBufferSizes( PaDeviceIndex device,
+        long *minBufferSizeFrames, long *maxBufferSizeFrames, long *preferredBufferSizeFrames, long *granularity );
+PaError PaAsio_ShowControlPanel( PaDeviceIndex device, void* systemSpecific );
+PaError PaAsio_GetInputChannelName( PaDeviceIndex device, int channelIndex,
+        const char** channelName );
+PaError PaAsio_GetOutputChannelName( PaDeviceIndex device, int channelIndex,
+        const char** channelName );
+PaError PaAsio_SetStreamSampleRate( PaStream* stream, double sampleRate );
+typedef struct PaAsioStreamInfo{
+    unsigned long size;
+    PaHostApiTypeId hostApiType;
+    unsigned long version;
+    unsigned long flags;
+    int *channelSelectors;
+}PaAsioStreamInfo;]]
 ffi_cdef[[static const int paNoDevice = ((PaDeviceIndex)-1);
 static const int paUseHostApiSpecificDeviceSpecification = ((PaDeviceIndex)-2);
 static const int paFloat32 = ((PaSampleFormat) 0x00000001);
@@ -220,7 +235,9 @@ static const int paInputUnderflow = ((PaStreamCallbackFlags) 0x00000001);
 static const int paInputOverflow = ((PaStreamCallbackFlags) 0x00000002);
 static const int paOutputUnderflow = ((PaStreamCallbackFlags) 0x00000004);
 static const int paOutputOverflow = ((PaStreamCallbackFlags) 0x00000008);
-static const int paPrimingOutput = ((PaStreamCallbackFlags) 0x00000010);]]
+static const int paPrimingOutput = ((PaStreamCallbackFlags) 0x00000010);
+static const int PaAsio_GetAvailableLatencyValues = PaAsio_GetAvailableBufferSizes;
+static const int paAsioUseChannelSelectors = (0x01);]]
 local lib = ffi.load"portaudio"
 
 local M = {C=lib}ffi.cdef"typedef struct pa_type{} pa_type;"
@@ -235,6 +252,9 @@ function PaStream_t:CloseStream()
 end
 
 
+function PaStream_t:PaAsio_SetStreamSampleRate(sampleRate)
+    return lib.PaAsio_SetStreamSampleRate(self,sampleRate)
+end
 function PaStream_t:AbortStream()
     return lib.Pa_AbortStream(self)
 end

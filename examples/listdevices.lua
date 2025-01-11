@@ -90,17 +90,17 @@ if ffi.os=="Windows" then
         if( Pa.C.Pa_GetHostApiInfo( deviceInfo.hostApi ).type == Pa.C.paASIO ) then
             local minLatency, maxLatency, preferredLatency, granularity = ffi.new("long[1]"),ffi.new("long[1]"),ffi.new("long[1]"),ffi.new("long[1]")
 
-            local err = Pa.C.PaAsio_GetAvailableLatencyValues( i,
+            local err = Pa.C.PaAsio_GetAvailableBufferSizes( i,
                     minLatency, maxLatency, preferredLatency, granularity );
 
-            printf( "ASIO minimum buffer size    = %ld\n", minLatency[0]  );
-            printf( "ASIO maximum buffer size    = %ld\n", maxLatency[0]  );
-            printf( "ASIO preferred buffer size  = %ld\n", preferredLatency[0]  );
+            printf( "ASIO minimum buffer size    = %d\n", minLatency[0]  );
+            printf( "ASIO maximum buffer size    = %d\n", maxLatency[0]  );
+            printf( "ASIO preferred buffer size  = %d\n", preferredLatency[0]  );
 
             if( granularity[0] == -1 ) then
                 printf( "ASIO buffer granularity     = power of 2\n" );
             else
-                printf( "ASIO buffer granularity     = %ld\n", granularity[0]  );
+                printf( "ASIO buffer granularity     = %d\n", granularity[0]  );
 			end
         end
 
