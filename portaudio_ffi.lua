@@ -58,7 +58,8 @@ typedef enum PaErrorCode
     paCanNotReadFromAnOutputOnlyStream,
     paCanNotWriteToAnInputOnlyStream,
     paIncompatibleStreamHostApi,
-    paBadBufferPtr
+    paBadBufferPtr,
+    paCanNotInitializeRecursively
 } PaErrorCode;
 const char *Pa_GetErrorText( PaError errorCode );
 PaError Pa_Initialize( void );
@@ -83,7 +84,9 @@ typedef enum PaHostApiTypeId
     paJACK=12,
     paWASAPI=13,
     paAudioScienceHPI=14,
-    paAudioIO=15
+    paAudioIO=15,
+    paPulseAudio=16,
+    paSndio=17
 } PaHostApiTypeId;
 typedef struct PaHostApiInfo
 {

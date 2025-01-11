@@ -11,7 +11,7 @@ if(WIN32)
 endif()
 
 set(PA_BUILD_STATIC OFF CACHE BOOL "PortAudio static library" FORCE)
-set(PA_BUILD_SHARED ON CACHE BOOL "PortAudio shared library" FORCE)
+set(PA_BUILD_SHARED_LIBS ON CACHE BOOL "PortAudio shared library" FORCE)
 
 
 # disable platform suffix
@@ -21,15 +21,15 @@ set(PA_DISABLE_INSTALL ON CACHE BOOL "Disable PortAudio install" FORCE)
 
 #set(ASIO_SDK_ZIP_PATH ../LuaJIT-rtaudio/
 add_subdirectory(portaudio  EXCLUDE_FROM_ALL)
-set_target_properties(PortAudio PROPERTIES PUBLIC_HEADER "")
+set_target_properties(portaudio PROPERTIES PUBLIC_HEADER "")
 
 add_custom_target(portaudio_ffi ALL)
-add_dependencies(portaudio_ffi PortAudio)
+add_dependencies(portaudio_ffi portaudio)
 
 set(CMAKE_FRAMEWORK ON)
 set(CMAKE_INSTALL_PREFIX ${LUAJIT_BIN})
 
-install(TARGETS PortAudio RUNTIME DESTINATION ${LUAJIT_BIN}
+install(TARGETS portaudio RUNTIME DESTINATION ${LUAJIT_BIN}
 					LIBRARY DESTINATION ${LUAJIT_BIN}
 					
 )
