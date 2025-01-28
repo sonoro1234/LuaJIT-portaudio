@@ -88,12 +88,15 @@ local function set_odev(dev)
 		printLOG("error in start_stream")--,ffi.string(lib.Pa.GetErrorText(err))))
 	end
 end
-
+local DevCombo
 local function scandevices()
-	auinf = Pa.GetAllInfo()
-	--ocombos = auinf.out_combos(ig)
-	--oAPI,odevice = auinf.first_out()
 	if dac then dac:StopStream(); dac:CloseStream(); dac = nil end
+	Pa.Terminate()
+	Pa.Initialize()
+	auinf = Pa.GetAllInfo()
+	DevCombo:set( auinf.out_devices.names)
+	-- require"anima"
+	-- prtable(auinf)
 end
 
 local standardSampleRates = {
@@ -108,7 +111,7 @@ for i= 6,11 do table.insert(bufsizes, tostring(2^i)) end
 BScombo = ig.LuaCombo("buffer size##in",bufsizes)
 BScombo:set_name("512")
 
-local DevCombo = ig.LuaCombo("devices", auinf.out_devices.names, function(val, id)
+DevCombo = ig.LuaCombo("devices", auinf.out_devices.names, function(val, id)
 	odevice = auinf.out_devices.devID[id] ; printLOG(val,id)
 end)
 
