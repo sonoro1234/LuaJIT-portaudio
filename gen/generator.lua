@@ -24,7 +24,7 @@ end
 
 
 local deftab = {}
----[[
+
 local ffi = require"ffi"
 ffi.cdef(table.concat(cdefs,""))
 local wanted_strings = {"."}
@@ -46,20 +46,8 @@ for i,v in ipairs(defines) do
 end
 --]]
 
+local LUAFUNCS = ""
 
-local portaudio_t_code = [[
-ffi.cdef"typedef struct pa_type{} pa_type;"
-
-local PaStream_t = {}
-PaStream_t.__index = PaStream_t
-
-
-function PaStream_t:CloseStream()
-    ffi.gc(self,nil)
-    return lib.Pa_CloseStream(self)
-end
-
-]]
 cp2c.table_do_sorted(parser.defsT, function(k,v)
 --for k,v in pairs(parser.defsT) do
 	if v[1].argsT[1] then
@@ -87,96 +75,21 @@ cp2c.table_do_sorted(parser.defsT, function(k,v)
 				retcode = "    return "..retcode
 			end
 			code = code .. retcode.. "\nend"
-			portaudio_t_code = portaudio_t_code..code
+			LUAFUNCS = LUAFUNCS..code
 		end
 	end
 --end
 end)
-portaudio_t_code = portaudio_t_code..[[
-
-M.Pa = ffi.metatype("pa_type",PaStream_t)
-
-]]
 
 
-local sdlstr = [[
-local ffi = require"ffi"
+local template = cp2c.read_data("./template.lua")
+local CDEFS = table.concat(cdefs,"")
+local DEFINES = "\n"..table.concat(deftab,"\n")
 
---uncomment to debug cdef calls]]..
-"\n---[["..[[
+template = template:gsub("CDEFS",CDEFS)
+template = template:gsub("DEFINES",DEFINES)
+template = template:gsub("LUAFUNCS",LUAFUNCS)
 
-local ffi_cdef = function(code)
-    local ret,err = pcall(ffi.cdef,code)
-    if not ret then
-        local lineN = 1
-        for line in code:gmatch("([^\n\r]*)\r?\n") do
-            print(lineN, line)
-            lineN = lineN + 1
-        end
-        print(err)
-        error"bad cdef"
-    end
-end
-]].."--]]"..[[
-
-ffi_cdef]].."[["..table.concat(cdefs,"").."]]"..[[
-
-ffi_cdef]].."[["..table.concat(deftab,"\n").."]]"..[[
-
-local lib = ffi.load"portaudio"
-
-local M = {C=lib}]]..portaudio_t_code..[=[
-
-function M.OpenDefaultStream(numInputChannels, numOutputChannels, sampleFormat, sampleRate, framesPerBuffer, streamCallback, userData)
-    local stream = ffi.new("PaStream*[1]")
-    local err = lib.Pa_OpenDefaultStream(stream,numInputChannels, numOutputChannels, sampleFormat, sampleRate, framesPerBuffer, streamCallback, userData)
-    if not(err == lib.paNoError) then 
-        return nil, err, string.format("error: %s",ffi.string(lib.Pa_GetErrorText(err)))
-    end
-    local st = ffi.new("pa_type*",stream[0])
-    ffi.gc(st,lib.Pa_CloseStream)
-    return st
-end
-function M.OpenStream(inputParameters, outputParameters, sampleRate, framesPerBuffer, streamFlags, streamCallback, userData)
-    local stream = ffi.new("PaStream*[1]")
-    local err = lib.Pa_OpenStream(stream,inputParameters, outputParameters, sampleRate, framesPerBuffer, streamFlags, streamCallback, userData)
-    if not(err == lib.paNoError) then 
-        return nil, err, string.format("error: %s",ffi.string(lib.Pa_GetErrorText(err)))
-    end
-    local st = ffi.new("pa_type*",stream[0])
-    ffi.gc(st,lib.Pa_CloseStream)
-    return st
-end
-
-
-local callback_t
-local callbacks_anchor = {}
-function M.MakeAudioCallback(func, ...)
-	if not callback_t then
-		local CallbackFactory = require "lj-async.callback"
-		callback_t = CallbackFactory("int(*)(void*,void*,unsigned long,PaStreamCallbackTimeInfo*,PaStreamCallbackFlags,void*)") --"RtAudioCallback"
-	end
-	local cb = callback_t(func, ...)
-	table.insert(callbacks_anchor,cb)
-	return cb:funcptr() , cb
-end
-
-
-
-setmetatable(M,{
-__index = function(t,k)
-	local ok,ptr = pcall(function(str) return lib["Pa_"..str] end,k)
-	if not ok then ok,ptr = pcall(function(str) return lib["pa"..str] end,k) end 
-	if not ok then error(k.." not found") end
-	rawset(M, k, ptr)
-	return ptr
-end
-})
-
-
-return M
-]=]
-
-cp2c.save_data("./portaudio_ffi.lua",sdlstr)
+cp2c.save_data("./portaudio_ffi.lua",template)
 cp2c.copyfile("./portaudio_ffi.lua","../portaudio_ffi.lua")
 

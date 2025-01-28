@@ -1,7 +1,8 @@
 local ffi = require"ffi"
 
---uncomment to debug cdef calls
+--uncomment to debug cdef calls]]..
 ---[[
+
 local ffi_cdef = function(code)
     local ret,err = pcall(ffi.cdef,code)
     if not ret then
@@ -15,6 +16,7 @@ local ffi_cdef = function(code)
     end
 end
 --]]
+
 ffi_cdef[[
 int Pa_GetVersion( void );
 const char* Pa_GetVersionText( void );
@@ -216,7 +218,9 @@ typedef struct PaAsioStreamInfo{
     unsigned long flags;
     int *channelSelectors;
 }PaAsioStreamInfo;]]
-ffi_cdef[[static const int paNoDevice = ((PaDeviceIndex)-1);
+
+ffi_cdef[[
+static const int paNoDevice = ((PaDeviceIndex)-1);
 static const int paUseHostApiSpecificDeviceSpecification = ((PaDeviceIndex)-2);
 static const int paFloat32 = ((PaSampleFormat) 0x00000001);
 static const int paInt32 = ((PaSampleFormat) 0x00000002);
@@ -241,13 +245,15 @@ static const int paOutputOverflow = ((PaStreamCallbackFlags) 0x00000008);
 static const int paPrimingOutput = ((PaStreamCallbackFlags) 0x00000010);
 static const int PaAsio_GetAvailableLatencyValues = PaAsio_GetAvailableBufferSizes;
 static const int paAsioUseChannelSelectors = (0x01);]]
+
 local lib = ffi.load"portaudio"
 
-local M = {C=lib}ffi.cdef"typedef struct pa_type{} pa_type;"
+local M = {C=lib}
+
+ffi.cdef"typedef struct pa_type{} pa_type;"
 
 local PaStream_t = {}
 PaStream_t.__index = PaStream_t
-
 
 function PaStream_t:CloseStream()
     ffi.gc(self,nil)
@@ -300,8 +306,8 @@ end
 function PaStream_t:WriteStream(buffer, frames)
     return lib.Pa_WriteStream(self,buffer, frames)
 end
-M.Pa = ffi.metatype("pa_type",PaStream_t)
 
+M.Pa = ffi.metatype("pa_type",PaStream_t)
 
 function M.OpenDefaultStream(numInputChannels, numOutputChannels, sampleFormat, sampleRate, framesPerBuffer, streamCallback, userData)
     local stream = ffi.new("PaStream*[1]")
@@ -337,6 +343,53 @@ function M.MakeAudioCallback(func, ...)
 	return cb:funcptr() , cb
 end
 
+function M.GetAllInfo()
+	local Pa = M
+	local I = {DEVS = {}}
+	local numDevices = Pa.GetDeviceCount();
+	for i=0,numDevices-1 do
+		local deviceInfo = Pa.GetDeviceInfo( i );
+		local hostInfo = Pa.GetHostApiInfo( deviceInfo.hostApi )
+		I.DEVS[i] = {}
+		I.DEVS[i].name = ffi.string(deviceInfo.name)
+		I.DEVS[i].API = ffi.string(hostInfo.name)
+		I.DEVS[i].inputs = deviceInfo.maxInputChannels
+		I.DEVS[i].outputs = deviceInfo.maxOutputChannels
+		I.DEVS[i].low_input_latency = deviceInfo.defaultLowInputLatency 
+		I.DEVS[i].low_output_latency = deviceInfo.defaultLowOutputLatency
+		I.DEVS[i].hight_input_latency = deviceInfo.defaultHighInputLatency
+		I.DEVS[i].hight_output_latency = deviceInfo.defaultHighOutputLatency
+		I.DEVS[i].is_default_input = (i == Pa.GetDefaultInputDevice()) or nil
+		I.DEVS[i].is_default_output = (i == Pa.GetDefaultOutputDevice()) or nil
+		I.DEVS[i].is_default_api_input = (i == hostInfo.defaultInputDevice) or nil
+		I.DEVS[i].is_default_api_output = (i == hostInfo.defaultOutputDevice) or nil
+		if hostInfo.type == Pa.ASIO then
+			local minLatency, maxLatency, preferredLatency, granularity = ffi.new("long[1]"),ffi.new("long[1]"),ffi.new("long[1]"),ffi.new("long[1]")
+			local err = Pa.C.PaAsio_GetAvailableBufferSizes( i, minLatency, maxLatency, preferredLatency, granularity );
+			assert(err==Pa.NoError)
+			I.DEVS[i].minbuff = minLatency[0]
+			I.DEVS[i].maxbuff = maxLatency[0]
+			I.DEVS[i].bestbuff = preferredLatency[0]
+			I.DEVS[i].granularity = (granularity[0] == -1 ) and "power of 2" or granularity[0]
+		end
+	end
+		---get output devices
+    local out_devices = {names = {}, devID = {}}
+    for j=0,#I.DEVS do
+            local dev = I.DEVS[j]
+            if dev.outputs > 0 then
+                table.insert(out_devices.names , dev.name)
+                table.insert(out_devices.devID , j)
+            end
+    end
+    --no device
+    if #out_devices.names == 0 then
+            table.insert(out_devices.names , "none")
+            table.insert(out_devices.devID , -1)
+    end
+	I.out_devices = out_devices
+	return I
+end
 
 
 setmetatable(M,{
