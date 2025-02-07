@@ -33,10 +33,11 @@ end
 local function printLOG(...)
 	igLOG:Add(strconcat(...))
 end
+----------------------------------------
 local Pa = require"portaudio_ffi"
 local err = Pa.Initialize()
 assert(err==Pa.NoError)
--------------------------------------
+
 local function AudioInit(udatacode)
 	local ffi = require"ffi"
 	local Pa = require"portaudio_ffi"

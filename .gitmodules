@@ -1,5 +1,4 @@
 [submodule "portaudio"]
 	path = portaudio
-	url = https://github.com/sonoro1234/portaudio
-	branch = asiolistcmakepatch
+	url = https://github.com/PortAudio/portaudio
 
